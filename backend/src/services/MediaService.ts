@@ -10,7 +10,12 @@ export class MediaService {
   constructor(private readonly mediaRepository: IMediaRepository) {}
 
   public async listCatalog(): Promise<Media[]> {
-    return this.mediaRepository.findAll();
+    const medias = await this.mediaRepository.findAll();
+
+    return medias.map((media) => ({
+      ...media,
+      coverUrl: this.resolveCoverUrl(media.coverUrl)
+    }));
   }
 
   public async getMediaStreamDetails(
@@ -98,5 +103,56 @@ export class MediaService {
         return 'video/mp4';
     }
   }
-}
 
+  private resolveCoverUrl(coverFileName: string): string {
+    if (/^https?:\/\//i.test(coverFileName) || coverFileName.startsWith('data:')) {
+      return coverFileName;
+    }
+
+    const resolvedPath = this.resolveMediaPath(coverFileName);
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new AppError(`Arquivo de capa não encontrado: ${coverFileName}`, 404);
+    }
+
+    if (!fs.statSync(resolvedPath).isFile()) {
+      throw new AppError(`O caminho da capa não é um arquivo: ${coverFileName}`, 400);
+    }
+
+    const mimeType = this.resolveImageMimeType(resolvedPath);
+    const imageBase64 = fs.readFileSync(resolvedPath).toString('base64');
+
+    return `data:${mimeType};base64,${imageBase64}`;
+  }
+
+  private resolveMediaPath(fileName: string): string {
+    const mediaRoot = path.resolve(config.mediaRootPath);
+    const resolvedPath = path.resolve(mediaRoot, fileName);
+    const relativePath = path.relative(mediaRoot, resolvedPath);
+
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+      throw new AppError(`Caminho de mídia inválido: ${fileName}`, 400);
+    }
+
+    return resolvedPath;
+  }
+
+  private resolveImageMimeType(filePath: string): string {
+    const ext = path.extname(filePath).toLowerCase();
+    switch (ext) {
+      case '.jpg':
+      case '.jpeg':
+        return 'image/jpeg';
+      case '.png':
+        return 'image/png';
+      case '.webp':
+        return 'image/webp';
+      case '.gif':
+        return 'image/gif';
+      case '.svg':
+        return 'image/svg+xml';
+      default:
+        throw new AppError(`Formato de imagem de capa não suportado: ${ext || 'desconhecido'}`, 400);
+    }
+  }
+}
