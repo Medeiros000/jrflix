@@ -5,12 +5,14 @@ import { Navbar } from './components/Navbar';
 import { MediaCard } from './components/MediaCard';
 import { MediaModal } from './components/MediaModal';
 import { VideoPlayer } from './components/VideoPlayer';
+import { AdminPage } from './components/AdminPage';
 import { Film, AlertTriangle, RefreshCw } from 'lucide-react';
 
 export const App: React.FC = () => {
   const { medias, isLoading, error, refresh } = useMediaCatalog();
   const [selectedMedia, setSelectedMedia] = useState<Media | null>(null);
   const [playingMedia, setPlayingMedia] = useState<Media | null>(null);
+  const [isAdminPage, setIsAdminPage] = useState(false);
 
   const handleOpenModal = (media: Media): void => {
     setSelectedMedia(media);
@@ -31,8 +33,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#141414] text-white flex flex-col">
-      <Navbar />
+      <Navbar onAdminClick={() => setIsAdminPage(true)} />
 
+      {isAdminPage ? (
+        <AdminPage onCreated={refresh} onBack={() => setIsAdminPage(false)} />
+      ) : (
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Banner Minimalista */}
         <div className="relative rounded-2xl overflow-hidden mb-10 bg-gradient-to-r from-neutral-900 to-neutral-800 border border-neutral-800 p-8 sm:p-12 shadow-2xl">
@@ -100,6 +105,7 @@ export const App: React.FC = () => {
           )}
         </section>
       </main>
+      )}
 
       {/* Modal de Detalhes */}
       <MediaModal
@@ -119,4 +125,3 @@ export const App: React.FC = () => {
   );
 };
 export default App;
-

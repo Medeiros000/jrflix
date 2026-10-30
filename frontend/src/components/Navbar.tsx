@@ -1,7 +1,11 @@
 import React from 'react';
 import { Film } from 'lucide-react';
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  onAdminClick?: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onAdminClick }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-[#141414]/90 backdrop-blur-md border-b border-white/10 px-6 py-4 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -22,6 +26,9 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
+          <button onClick={onAdminClick} className="text-xs text-gray-300 hover:text-white">
+            Administrar
+          </button>
           <span className="text-xs bg-white/10 text-gray-300 px-3 py-1 rounded-full border border-white/5">
             Streaming Local
           </span>
@@ -33,4 +40,3 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
-

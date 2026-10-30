@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { MediaService } from '../services/MediaService';
+import { MediaType } from '@prisma/client';
 
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
@@ -41,5 +42,42 @@ export class MediaController {
       next(error);
     }
   };
-}
 
+  public createMedia = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const year = Number(req.body.year);
+
+      if (!req.body.videoFileName || !req.body.coverFileName) {
+        res.status(400).json({ status: 'error', message: 'Os nomes do vídeo e da capa são obrigatórios' });
+        return;
+      }
+
+      if (!req.body.title || !req.body.description || !Object.values(MediaType).includes(req.body.type)) {
+        res.status(400).json({ status: 'error', message: 'Título, resumo e tipo são obrigatórios' });
+        return;
+      }
+
+      if (!Number.isInteger(year) || year < 1888 || year > new Date().getFullYear() + 1) {
+        res.status(400).json({ status: 'error', message: 'Ano inválido' });
+        return;
+      }
+
+      const media = await this.mediaService.createMedia({
+        title: req.body.title.trim(),
+        description: req.body.description.trim(),
+        type: req.body.type,
+        year,
+        videoFileName: req.body.videoFileName,
+        coverFileName: req.body.coverFileName
+      });
+
+      res.status(201).json(media);
+    } catch (error) {
+      next(error);
+    }
+  };
+}

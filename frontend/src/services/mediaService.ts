@@ -5,6 +5,15 @@ import { Media } from '../types/media';
 // /api to the backend.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+export interface CreateMediaInput {
+  title: string;
+  description: string;
+  year: string;
+  type: 'MOVIE' | 'SERIES';
+  videoFileName: string;
+  coverFileName: string;
+}
+
 export class MediaService {
   public static async getCatalog(): Promise<Media[]> {
     const response = await fetch(`${API_BASE_URL}/media`);
@@ -26,5 +35,18 @@ export class MediaService {
 
   public static getStreamUrl(mediaId: string): string {
     return `${API_BASE_URL}/media/${mediaId}/stream`;
+  }
+
+  public static async createMedia(input: CreateMediaInput): Promise<Media> {
+    const response = await fetch(`${API_BASE_URL}/media`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+    const payload = await response.json() as { message?: string } & Partial<Media>;
+    if (!response.ok) {
+      throw new Error(payload.message || 'Falha ao cadastrar mídia.');
+    }
+    return payload as Media;
   }
 }

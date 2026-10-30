@@ -6,6 +6,15 @@ import { config } from '../config/env';
 import { AppError } from '../errors/AppError';
 import { StreamRangeInfo } from '../types/media.types';
 
+export interface CreateMediaInput {
+  title: string;
+  description: string;
+  type: Media['type'];
+  year: number;
+  videoFileName: string;
+  coverFileName: string;
+}
+
 export class MediaService {
   constructor(private readonly mediaRepository: IMediaRepository) {}
 
@@ -16,6 +25,29 @@ export class MediaService {
       ...media,
       coverUrl: this.resolveCoverUrl(media.coverUrl)
     }));
+  }
+
+  public async createMedia(input: CreateMediaInput): Promise<Media> {
+    const videoPath = this.resolveMediaPath(input.videoFileName);
+    if (!fs.existsSync(videoPath) || !fs.statSync(videoPath).isFile()) {
+      throw new AppError(`Arquivo de vídeo não encontrado: ${input.videoFileName}`, 404);
+    }
+
+    this.resolveCoverUrl(input.coverFileName);
+
+    const media = await this.mediaRepository.create({
+      title: input.title,
+      description: input.description,
+      type: input.type,
+      year: input.year,
+      filePath: input.videoFileName,
+      coverUrl: input.coverFileName
+    });
+
+    return {
+      ...media,
+      coverUrl: this.resolveCoverUrl(media.coverUrl)
+    };
   }
 
   public async getMediaStreamDetails(
@@ -126,6 +158,10 @@ export class MediaService {
   }
 
   private resolveMediaPath(fileName: string): string {
+    if (path.basename(fileName) !== fileName) {
+      throw new AppError(`Nome de arquivo inválido: ${fileName}`, 400);
+    }
+
     const mediaRoot = path.resolve(config.mediaRootPath);
     const resolvedPath = path.resolve(mediaRoot, fileName);
     const relativePath = path.relative(mediaRoot, resolvedPath);

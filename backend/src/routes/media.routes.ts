@@ -10,7 +10,7 @@ const mediaService = new MediaService(mediaRepository);
 const mediaController = new MediaController(mediaService);
 
 mediaRouter.get('/', mediaController.getCatalog);
+mediaRouter.post('/', mediaController.createMedia);
 mediaRouter.get('/:id/stream', mediaController.streamMedia);
 
 export { mediaRouter };
-

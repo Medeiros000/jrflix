@@ -12,3 +12,8 @@ enviará incorporada no campo `coverUrl` da resposta do catálogo.
 Exemplo:
 - vídeo: `Frozen.mp4`
 - capa: `frozen.jpg`
+
+O cadastro também pode ser feito pela opção **Administrar** no frontend. O
+formulário usa os arquivos selecionados apenas para preencher seus nomes e
+envia os nomes, título, resumo, ano e tipo para `POST /api/media`. Os arquivos
+precisam estar previamente nesta pasta.
