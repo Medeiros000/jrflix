@@ -21,9 +21,25 @@ model Media {
   filePath    String
   coverUrl    String
   year        Int
+  seriesSlug  String?   @unique
+  episodes    Episode[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@map("medias")
 }
 
+model Episode {
+  id            String   @id @default(uuid())
+  title         String
+  filePath      String   @unique
+  episodeNumber Int
+  seasonNumber  Int      @default(1)
+  duration      Int?
+  mediaId       String
+  media         Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("episodes")
+}

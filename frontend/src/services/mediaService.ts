@@ -1,4 +1,4 @@
-import { Media } from '../types/media';
+import { Media, Episode } from '../types/media';
 
 // Use the frontend host by default so phones on the same network do not try
 // to reach their own localhost. The dev server and nginx proxy both forward
@@ -35,6 +35,20 @@ export class MediaService {
 
   public static getStreamUrl(mediaId: string): string {
     return `${API_BASE_URL}/media/${mediaId}/stream`;
+  }
+
+  public static async getEpisodes(seriesId: string): Promise<Episode[]> {
+    const response = await fetch(`${API_BASE_URL}/media/${seriesId}/episodes`);
+
+    if (!response.ok) {
+      throw new Error(`Falha ao carregar episódios: ${response.statusText}`);
+    }
+
+    return response.json() as Promise<Episode[]>;
+  }
+
+  public static getEpisodeStreamUrl(episodeId: string): string {
+    return `${API_BASE_URL}/episodes/${episodeId}/stream`;
   }
 
   public static async createMedia(input: CreateMediaInput): Promise<Media> {

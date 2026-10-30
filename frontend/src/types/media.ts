@@ -1,5 +1,16 @@
 export type MediaType = 'MOVIE' | 'SERIES';
 
+export interface Episode {
+  id: string;
+  title: string;
+  filePath: string;
+  episodeNumber: number;
+  seasonNumber: number;
+  mediaId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Media {
   id: string;
   title: string;

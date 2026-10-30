@@ -80,4 +80,43 @@ export class MediaController {
       next(error);
     }
   };
+
+  public getEpisodes = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { seriesId } = req.params;
+      const episodes = await this.mediaService.getEpisodesByMediaId(seriesId);
+      res.status(200).json(episodes);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public streamEpisode = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const { episodeId } = req.params;
+      const range = req.headers.range;
+
+      const { rangeInfo, stream } = await this.mediaService.getEpisodeStreamDetails(episodeId, range);
+
+      const headers: Record<string, string | number> = {
+        'Content-Range': `bytes ${rangeInfo.start}-${rangeInfo.end}/${rangeInfo.totalSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': rangeInfo.chunkSize,
+        'Content-Type': rangeInfo.mimeType
+      };
+
+      res.writeHead(206, headers);
+      stream.pipe(res);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

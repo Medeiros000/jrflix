@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Media } from '@prisma/client';
+import { Media, Episode } from '@prisma/client';
 import { IMediaRepository } from '../repositories/MediaRepository';
 import { config } from '../config/env';
 import { AppError } from '../errors/AppError';
@@ -28,7 +28,8 @@ export class MediaService {
   }
 
   public async createMedia(input: CreateMediaInput): Promise<Media> {
-    const videoPath = this.resolveMediaPath(input.videoFileName);
+    // For createMedia (manual), only flat file names are accepted
+    const videoPath = this.resolveMediaPathStrict(input.videoFileName);
     if (!fs.existsSync(videoPath) || !fs.statSync(videoPath).isFile()) {
       throw new AppError(`Arquivo de vídeo não encontrado: ${input.videoFileName}`, 404);
     }
@@ -68,6 +69,38 @@ export class MediaService {
       throw new AppError(`Arquivo de vídeo não encontrado no caminho: ${media.filePath}`, 404);
     }
 
+    return this.buildStreamResponse(resolvedPath, rangeHeader);
+  }
+
+  public async getEpisodeStreamDetails(
+    episodeId: string,
+    rangeHeader?: string
+  ): Promise<{ resolvedPath: string; rangeInfo: StreamRangeInfo; stream: fs.ReadStream }> {
+    const episode = await this.mediaRepository.findEpisodeById(episodeId);
+
+    if (!episode) {
+      throw new AppError('Episódio não encontrado', 404);
+    }
+
+    const resolvedPath = path.isAbsolute(episode.filePath)
+      ? episode.filePath
+      : path.join(config.mediaRootPath, episode.filePath);
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new AppError(`Arquivo do episódio não encontrado: ${episode.filePath}`, 404);
+    }
+
+    return this.buildStreamResponse(resolvedPath, rangeHeader);
+  }
+
+  public async getEpisodesByMediaId(mediaId: string): Promise<Episode[]> {
+    return this.mediaRepository.findEpisodesByMediaId(mediaId);
+  }
+
+  private buildStreamResponse(
+    resolvedPath: string,
+    rangeHeader?: string
+  ): { resolvedPath: string; rangeInfo: StreamRangeInfo; stream: fs.ReadStream } {
     const stat = fs.statSync(resolvedPath);
     const totalSize = stat.size;
 
@@ -76,8 +109,6 @@ export class MediaService {
     }
 
     const mimeType = this.resolveMimeType(resolvedPath);
-
-    // Default chunk size if end is not specified (1MB chunk)
     const defaultChunkSize = 1024 * 1024;
 
     let start = 0;
@@ -98,7 +129,6 @@ export class MediaService {
         end = Math.min(start + defaultChunkSize, totalSize - 1);
       }
     } else {
-      // If no Range header is provided, serve first chunk to encourage Range requests from clients
       end = Math.min(defaultChunkSize, totalSize - 1);
     }
 
@@ -107,13 +137,7 @@ export class MediaService {
 
     return {
       resolvedPath,
-      rangeInfo: {
-        start,
-        end,
-        chunkSize,
-        totalSize,
-        mimeType
-      },
+      rangeInfo: { start, end, chunkSize, totalSize, mimeType },
       stream
     };
   }
@@ -136,32 +160,36 @@ export class MediaService {
     }
   }
 
-  private resolveCoverUrl(coverFileName: string): string {
+  public resolveCoverUrl(coverFileName: string): string {
+    if (!coverFileName) {
+      return '';
+    }
+
     if (/^https?:\/\//i.test(coverFileName) || coverFileName.startsWith('data:')) {
       return coverFileName;
     }
 
-    const resolvedPath = this.resolveMediaPath(coverFileName);
+    try {
+      const resolvedPath = this.resolveMediaPathSafe(coverFileName);
 
-    if (!fs.existsSync(resolvedPath)) {
-      throw new AppError(`Arquivo de capa não encontrado: ${coverFileName}`, 404);
+      if (!fs.existsSync(resolvedPath) || !fs.statSync(resolvedPath).isFile()) {
+        return '';
+      }
+
+      const mimeType = this.resolveImageMimeType(resolvedPath);
+      const imageBase64 = fs.readFileSync(resolvedPath).toString('base64');
+
+      return `data:${mimeType};base64,${imageBase64}`;
+    } catch {
+      return '';
     }
-
-    if (!fs.statSync(resolvedPath).isFile()) {
-      throw new AppError(`O caminho da capa não é um arquivo: ${coverFileName}`, 400);
-    }
-
-    const mimeType = this.resolveImageMimeType(resolvedPath);
-    const imageBase64 = fs.readFileSync(resolvedPath).toString('base64');
-
-    return `data:${mimeType};base64,${imageBase64}`;
   }
 
-  private resolveMediaPath(fileName: string): string {
-    if (path.basename(fileName) !== fileName) {
-      throw new AppError(`Nome de arquivo inválido: ${fileName}`, 400);
-    }
-
+  /**
+   * Resolves a media path that may include subdirectories (e.g. "Series/cover.jpg").
+   * Validates that the resolved path stays within mediaRootPath.
+   */
+  private resolveMediaPathSafe(fileName: string): string {
     const mediaRoot = path.resolve(config.mediaRootPath);
     const resolvedPath = path.resolve(mediaRoot, fileName);
     const relativePath = path.relative(mediaRoot, resolvedPath);
@@ -171,6 +199,17 @@ export class MediaService {
     }
 
     return resolvedPath;
+  }
+
+  /**
+   * Strict resolver for manually created media — only flat file names (no subdirectories).
+   */
+  private resolveMediaPathStrict(fileName: string): string {
+    if (path.basename(fileName) !== fileName) {
+      throw new AppError(`Nome de arquivo inválido: ${fileName}`, 400);
+    }
+
+    return this.resolveMediaPathSafe(fileName);
   }
 
   private resolveImageMimeType(filePath: string): string {

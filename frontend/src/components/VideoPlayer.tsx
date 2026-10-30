@@ -6,20 +6,35 @@ import { useCast } from '../hooks/useCast';
 
 interface VideoPlayerProps {
   media: Media;
+  streamUrl?: string;
+  displayTitle?: string;
+  subtitle?: string;
   onClose: () => void;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  media,
+  streamUrl: customStreamUrl,
+  displayTitle,
+  subtitle,
+  onClose
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const streamUrl = MediaService.getStreamUrl(media.id);
+  const streamUrl = customStreamUrl || MediaService.getStreamUrl(media.id);
   const { isCastAvailable, isConnected, castMedia } = useCast();
   const [castMessage, setCastMessage] = useState<string | null>(null);
+
+  const titleToShow = displayTitle || media.title;
 
   const handleStartCast = async (): Promise<void> => {
     try {
       setCastMessage(null);
       const currentTime = videoRef.current?.currentTime || 0;
-      await castMedia(media, streamUrl, currentTime);
+      await castMedia(
+        { ...media, title: titleToShow },
+        streamUrl,
+        currentTime
+      );
       setCastMessage('Transmitindo para Chromecast!');
       if (videoRef.current) {
         videoRef.current.pause();
@@ -38,13 +53,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
           className="flex items-center gap-2 text-white hover:text-red-500 transition px-3 py-2 rounded-lg bg-black/40 backdrop-blur-sm"
         >
           <ArrowLeft className="w-6 h-6" />
-          <span className="font-semibold text-sm">Voltar ao Catálogo</span>
+          <span className="font-semibold text-sm">Voltar</span>
         </button>
 
         <div className="flex items-center gap-4">
           <div className="text-right hidden sm:block">
-            <h2 className="text-white font-bold text-sm">{media.title}</h2>
-            <span className="text-xs text-gray-400">{media.year} • {media.type === 'MOVIE' ? 'Filme' : 'Série'}</span>
+            <h2 className="text-white font-bold text-sm">{titleToShow}</h2>
+            <span className="text-xs text-gray-400">
+              {subtitle ? subtitle : `${media.year} • ${media.type === 'MOVIE' ? 'Filme' : 'Série'}`}
+            </span>
           </div>
 
           {/* Cast Trigger */}
@@ -88,4 +105,3 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ media, onClose }) => {
     </div>
   );
 };
-

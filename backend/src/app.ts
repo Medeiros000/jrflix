@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from './config/env';
-import { mediaRouter } from './routes/media.routes';
+import { mediaRouter, episodeRouter } from './routes/media.routes';
 import { errorHandler } from './middlewares/errorHandler';
 
 export const app = express();
@@ -14,6 +14,6 @@ app.get('/health', (_req, res) => {
 });
 
 app.use('/api/media', mediaRouter);
+app.use('/api/episodes', episodeRouter);
 
 app.use(errorHandler);
-

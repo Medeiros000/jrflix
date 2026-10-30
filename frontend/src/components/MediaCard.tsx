@@ -5,21 +5,36 @@ import { Media } from '../types/media';
 interface MediaCardProps {
   media: Media;
   onSelect: (media: Media) => void;
+  onSelectSeries?: (media: Media) => void;
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({ media, onSelect }) => {
+export const MediaCard: React.FC<MediaCardProps> = ({ media, onSelect, onSelectSeries }) => {
+  const handleClick = (): void => {
+    if (media.type === 'SERIES' && onSelectSeries) {
+      onSelectSeries(media);
+    } else {
+      onSelect(media);
+    }
+  };
+
   return (
     <div
-      onClick={() => onSelect(media)}
+      onClick={handleClick}
       className="group relative bg-[#181818] rounded-md overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:z-20 hover:shadow-2xl hover:shadow-black/80 flex flex-col"
     >
       <div className="relative aspect-video w-full overflow-hidden bg-neutral-900">
-        <img
-          src={media.coverUrl}
-          alt={media.title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          loading="lazy"
-        />
+        {media.coverUrl ? (
+          <img
+            src={media.coverUrl}
+            alt={media.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-neutral-800 text-neutral-500">
+            <span className="text-xs uppercase font-semibold">Sem capa</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-white/90 text-black flex items-center justify-center shadow-lg transform group-hover:scale-100 transition">
             <Play className="w-6 h-6 fill-black ml-1" />
@@ -41,4 +56,3 @@ export const MediaCard: React.FC<MediaCardProps> = ({ media, onSelect }) => {
     </div>
   );
 };
-

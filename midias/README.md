@@ -1,19 +1,11 @@
 # Pasta de Mídias Locais
 
-Coloque seus arquivos de vídeo (como `.mp4`, `.mkv`, `.webm`) e as imagens
-de capa (como `.jpg`, `.png` ou `.webp`) nesta pasta.
+Coloque seus arquivos de vídeo (como `.mp4`, `.mkv`, `.webm`) nesta pasta.
 
 Eles serão montados automaticamente dentro do container do backend em `/app/media`.
 
-No banco de dados, salve em `coverUrl` somente o nome do arquivo de imagem,
-por exemplo `frozen.jpg`. A rota `GET /api/media` lerá essa imagem e a
-enviará incorporada no campo `coverUrl` da resposta do catálogo.
+Exemplo de arquivos referenciados no seed:
+- `sintel.mp4`
+- `cosmos_sample.mp4`
+- `big_buck_bunny.mp4`
 
-Exemplo:
-- vídeo: `Frozen.mp4`
-- capa: `frozen.jpg`
-
-O cadastro também pode ser feito pela opção **Administrar** no frontend. O
-formulário usa os arquivos selecionados apenas para preencher seus nomes e
-envia os nomes, título, resumo, ano e tipo para `POST /api/media`. Os arquivos
-precisam estar previamente nesta pasta.
